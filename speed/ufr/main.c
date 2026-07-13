@@ -42,8 +42,10 @@ void time_average() {
 // ============================================================================
 
 int main() {
-    // ufr_stdout("@new ros2 @coder ros2:laserscan @topic /scan @log 0");
-    ufr_stdout("@new mqtt @coder msgpack @topic /scan @log 0 @host 177.153.62.174");
+    // ufr_stdout("@new mqtt @coder msgpack @topic /scan");
+    // ufr_stdout("@new zmq @coder msgpack @log 0");
+    ufr_stdout("@new ros2 @coder ros2:laserscan @topic /scan @log 0");
+    
     sleep(1);
 
     float ranges[1000];

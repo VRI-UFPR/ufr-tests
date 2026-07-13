@@ -2,18 +2,12 @@
 //  Header
 // ============================================================================
 
-#include <msgpack/pack.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <zmq.h>
 #include <string.h>
+#include <stdio.h>
 #include <unistd.h>
-#include <mosquitto.h>
 #include <msgpack.h>
 #include <pthread.h>
-
-#define BROKER_ADDRESS "127.0.0.1"
-#define BROKER_PORT 1883
-#define TOPIC "/scan"
 
 // ============================================================================
 //  Medição do Tempo
@@ -48,34 +42,25 @@ void time_average() {
 //  Main
 // ============================================================================
 
-int main() {
-    // 1. Inicializa o buffer do MessagePack
+int main(void) {
+    // 1. Create context and publisher socket
+    void *context = zmq_ctx_new();
+    void *publisher = zmq_socket(context, ZMQ_PUB);
+    
+    // 2. Inicializa o buffer do MessagePack
     msgpack_sbuffer sbuffer;
     msgpack_sbuffer_init(&sbuffer);
 
-    // 2. Inicializa o empacotador
+    // 3. Inicializa o empacotador
     msgpack_packer pk;
     msgpack_packer_init(&pk, &sbuffer, msgpack_sbuffer_write);
-   
-    // 3. Inicializa a biblioteca Mosquitto
-    mosquitto_lib_init();
 
-    // Cria uma nova instância de cliente
-    struct mosquitto *mosq = mosquitto_new(NULL, true, NULL);
-    if (!mosq) {
-        fprintf(stderr, "Erro ao criar instância do Mosquitto\n");
+    // 4. Bind to a port
+    int rc = zmq_bind(publisher, "tcp://*:5000");
+    if (rc != 0) {
+        printf("Error binding socket\n");
         return 1;
     }
-
-    // Conecta ao broker MQTT
-    int rc = mosquitto_connect(mosq, BROKER_ADDRESS, BROKER_PORT, 60);
-    if (rc != MOSQ_ERR_SUCCESS) {
-        fprintf(stderr, "Erro ao conectar ao broker: %s\n", mosquitto_strerror(rc));
-        return 1;
-    }
-    sleep(1);
-
-    printf("Conectado ao broker! Publicando dados...\n");
 
     // Publica o buffer binário do MessagePack
     float ranges[1000];
@@ -85,8 +70,12 @@ int main() {
         intensities[i] = 1.56078;
     }
 
-    for (int i=0; i<30; i++) {
-        // Envia o pacote
+
+    static int a = 0;
+
+    const char *payload = "Breaking: Local team wins championship!";
+
+    for (int i=0; i<50; i++) {
         time_begin();
         msgpack_sbuffer_clear(&sbuffer);
         msgpack_pack_float(&pk, 1.0);
@@ -107,28 +96,17 @@ int main() {
             msgpack_pack_float(&pk, intensities[i]);
         }
 
-        rc = mosquitto_publish(mosq, NULL, TOPIC, sbuffer.size, sbuffer.data, 0, false);
+        // Send the body/payload frame
+        zmq_send(publisher, sbuffer.data, sbuffer.size, 0);
         time_end();
 
-        // printf("%ld\n", sbuffer.size);
-
-        // Verifica se enviou
-        if (rc != MOSQ_ERR_SUCCESS) {
-            fprintf(stderr, "Erro ao publicar mensagem: %s\n", mosquitto_strerror(rc));
-        }
-
-        // Necessario um delay, senão ele envia apenas uma única mensagem
         usleep(500000);
     }
 
     time_average();
 
-    // Aguarda e encerra a conexão
-    mosquitto_disconnect(mosq);
-    mosquitto_destroy(mosq);
-    mosquitto_lib_cleanup();
-
-    // Libera o buffer do MessagePack
-    msgpack_sbuffer_destroy(&sbuffer);
+    // Clean up (unreachable in infinite loop)
+    zmq_close(publisher);
+    zmq_ctx_destroy(context);
     return 0;
 }
