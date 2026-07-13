@@ -1,51 +1,73 @@
+// ============================================================================
+//  Header
+// ============================================================================
+
 #include <ufr.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
 
+// ============================================================================
+//  Medição do Tempo
+// ============================================================================
+
+int count = 0;
+int64_t sum = 0;
 struct timespec start, end;
 
+static
 void time_begin() {
     clock_gettime(CLOCK_MONOTONIC, &start);
 }
 
+static
 void time_end() {
     clock_gettime(CLOCK_MONOTONIC, &end);
     int64_t elapsed_ns = (end.tv_sec - start.tv_sec) * 1000000000LL + 
             (end.tv_nsec - start.tv_nsec);
-
+    sum += elapsed_ns;
+    count += 1;
     printf("Time: %ld nanoseconds\n", elapsed_ns);
 }
 
+static
+void time_average() {
+    double average = sum / (double)count;
+    printf("Average Time: %.2f nanoseconds\n", average);
+}
+
+// ============================================================================
+//  Main
+// ============================================================================
 
 int main() {
-    ufr_stdout("@new ros2 @coder ros2:laserscan @topic /scan @log 0");
-
+    // ufr_stdout("@new ros2 @coder ros2:laserscan @topic /scan @log 0");
+    ufr_stdout("@new mqtt @coder msgpack @topic /scan @log 0 @host 177.153.62.174");
     sleep(1);
-    float ranges[1100];
-    for (int i=0; i<20; i++) {
-        time_begin();
-        /*ufr_printf("time_increment:%f scan_time:%f range_min:%f range_max:%f", 1.0, 1.0, 1.0, 20.0);
-        ufr_printf("angle_min:%f angle_max:%f angle_increment:%f", 0.0, 15.0, 0.25);
-        for (int j=0; j<1100; j++){
-            ranges[j] = 2.0;
-        }
-        ufr_printf("ranges: %af\n", 1100, ranges);*/
 
-        ufr_printf("%f %f %f", 0.0, 15.0, 0.25);
-        ufr_printf("%f %f %f %f", 1.0, 1.0, 1.0, 20.0);
-        ufr_printf("%af\n", 1100, ranges);
-
-        time_end();
-        // ufr_printf("intensities=%a:0:?\n", range_size);
-        // ufr_put_af32(link, range_ptr, range_size);
-        // ufr_send(link);
-        // printf("dormindo\n");
-        sleep(1);
+    float ranges[1000];
+    float intensities[1000];
+    for (int i=0; i<1000; i++){
+        ranges[i] = 10.0;
+        intensities[i] = 1.56078;
     }
 
-    // ufr_close(fd);
+    for (int i=0; i<50; i++) {
+        time_begin();
+        ufr_printf("time_increment=%f scan_time=%f", 1.0, 2.0);
+        ufr_printf("range_min=%f range_max=%f", 3.0, 4.0);
+        ufr_printf("angle_min=%f angle_max=%f angle_increment=%f", 5.0, 6.0, 7.0);
+        ufr_printf("ranges=%a:f:1000", ranges);
+        ufr_printf("intensities=%a:f:1000\n", intensities);
+        time_end();
+
+        // Necessario um delay, senão ele envia apenas uma única mensagem
+        usleep(500000);
+    }
+
+    time_average();
+    return 0;
 }
 
 /*

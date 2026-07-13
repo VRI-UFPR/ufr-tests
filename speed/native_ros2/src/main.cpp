@@ -1,4 +1,6 @@
-#include "geometry_msgs/msg/twist.hpp"
+// ============================================================================
+//  Header
+// ============================================================================
 
 #include <chrono>
 #include <memory>
@@ -11,24 +13,40 @@
 #include "geometry_msgs/msg/transform_stamped.hpp"
 #include "tf2_ros/transform_broadcaster.h"
 
+using namespace std::chrono_literals;
 
+// ============================================================================
+//  Medição do Tempo
+// ============================================================================
 
+int count = 0;
+int64_t sum = 0;
 struct timespec start, end;
 
+static
 void time_begin() {
     clock_gettime(CLOCK_MONOTONIC, &start);
 }
 
+static
 void time_end() {
     clock_gettime(CLOCK_MONOTONIC, &end);
     int64_t elapsed_ns = (end.tv_sec - start.tv_sec) * 1000000000LL + 
             (end.tv_nsec - start.tv_nsec);
-
+    sum += elapsed_ns;
+    count += 1;
     printf("Time: %ld nanoseconds\n", elapsed_ns);
 }
 
+static
+void time_average() {
+    double average = sum / (double)count;
+    printf("Average Time: %.2f nanoseconds\n", average);
+}
 
-using namespace std::chrono_literals;
+// ============================================================================
+//  Main
+// ============================================================================
 
 int main(int argc, char ** argv)
 {
@@ -49,14 +67,19 @@ int main(int argc, char ** argv)
   
   // Prepara a mensagem LaserScan
   auto scan_msg = std::make_shared<sensor_msgs::msg::LaserScan>();
+  // Preenche os dados de leitura (exemplo simulando obstáculos)
+  const size_t num_readings = 1000; // 6.28 / 0.1 aprox 63
+  scan_msg->ranges.resize(num_readings);
+  scan_msg->intensities.resize(num_readings);
+
   geometry_msgs::msg::TransformStamped tf_msg;
+
+
 
   auto tf_broadcaster = std::make_shared<tf2_ros::TransformBroadcaster>(node);
 
   // 5. Loop principal de execução
-  while (rclcpp::ok())
-  {
-
+  for (int i=0; i<50 && rclcpp::ok(); i++) {
     time_begin();
 
     auto stamp = node->get_clock()->now();
@@ -93,29 +116,21 @@ int main(int argc, char ** argv)
     scan_msg->range_min = 0.1;
     scan_msg->range_max = 10.0;
 
-    // Preenche os dados de leitura (exemplo simulando obstáculos)
-    size_t num_readings = 1100; // 6.28 / 0.1 aprox 63
-    scan_msg->ranges.resize(num_readings);
-    // scan_msg->intensities.resize(num_readings);
-
-    for(size_t i = 0; i < num_readings; ++i) {
-      scan_msg->ranges[i] = 2.0; // distância simulada
-      // scan_msg->intensities[i] = 100.0; // intensidade do retorno
-    }
+  for(size_t i = 0; i < num_readings; ++i) {
+    scan_msg->ranges[i] = 10.0; // distância simulada
+    scan_msg->intensities[i] = 1.56078; // intensidade do retorno
+  }
 
     // Publica a mensagem
-    // RCLCPP_INFO(node->get_logger(), "Publicando novo LaserScan...");
     publisher->publish(*scan_msg);
     time_end();
 
-    // Processa callbacks pendentes e dorme pelo tempo restante do ciclo
-    // rclcpp::spin_some(node);
-    // loop_rate.sleep();
-    // count += 0.1;
-    sleep(1);
+    // Espera para enviar os dados
+    usleep(500000);
   }
 
   // 6. Encerra o ROS 2 corretamente
+  time_average();
   rclcpp::shutdown();
   return 0;
 }

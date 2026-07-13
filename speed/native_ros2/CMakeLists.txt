@@ -8,9 +8,9 @@ find_package(sensor_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
 
-add_executable(twist_burst_publisher ros2.cpp)
-ament_target_dependencies(twist_burst_publisher rclcpp geometry_msgs sensor_msgs tf2_ros)
+add_executable(test_ros2 src/main.cpp)
+ament_target_dependencies(test_ros2 rclcpp geometry_msgs sensor_msgs tf2_ros)
 
-install(TARGETS twist_burst_publisher DESTINATION lib/${PROJECT_NAME})
+install(TARGETS test_ros2 DESTINATION lib/${PROJECT_NAME})
 
 ament_package()
