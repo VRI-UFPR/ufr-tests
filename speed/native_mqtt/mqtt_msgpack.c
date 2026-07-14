@@ -10,6 +10,7 @@
 #include <mosquitto.h>
 #include <msgpack.h>
 #include <pthread.h>
+#include <math.h>
 
 #define BROKER_ADDRESS "127.0.0.1"
 #define BROKER_PORT 1883
@@ -23,6 +24,8 @@ int count = 0;
 int64_t sum = 0;
 struct timespec start, end;
 
+double times[100];
+
 static
 void time_begin() {
     clock_gettime(CLOCK_MONOTONIC, &start);
@@ -34,14 +37,26 @@ void time_end() {
     int64_t elapsed_ns = (end.tv_sec - start.tv_sec) * 1000000000LL + 
             (end.tv_nsec - start.tv_nsec);
     sum += elapsed_ns;
+    times[count] = (double) elapsed_ns;
     count += 1;
     printf("Time: %ld nanoseconds\n", elapsed_ns);
 }
 
 static
 void time_average() {
-    double average = sum / (double)count;
-    printf("Average Time: %.2f nanoseconds\n", average);
+    double media = sum / (double)count;
+    // printf("Average Time: %.2f nanoseconds\n", media);
+
+    double variancia_soma = 0.0;
+    for (int i = 0; i < count; i++) {
+        const double val = (times[i] - media);
+        variancia_soma += val * val;
+    }
+    double desvio_padrao = sqrt(variancia_soma / count);
+
+    // Exibição dos resultados
+    printf("\nMédia: %.2f\n", media);
+    printf("Desvio Padrão: %.2f\n", desvio_padrao);
 }
 
 // ============================================================================
@@ -85,7 +100,7 @@ int main() {
         intensities[i] = 1.56078;
     }
 
-    for (int i=0; i<30; i++) {
+    for (int i=0; i<50; i++) {
         // Envia o pacote
         time_begin();
         msgpack_sbuffer_clear(&sbuffer);

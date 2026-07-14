@@ -1,2 +1,2 @@
 test_ufr: main.c
-	gcc main.c -o teste_ufr -lufr -O3
+	gcc main.c -o teste_ufr -lufr -lm -O3

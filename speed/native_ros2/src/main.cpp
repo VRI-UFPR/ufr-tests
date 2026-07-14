@@ -23,6 +23,8 @@ int count = 0;
 int64_t sum = 0;
 struct timespec start, end;
 
+double times[100];
+
 static
 void time_begin() {
     clock_gettime(CLOCK_MONOTONIC, &start);
@@ -34,14 +36,26 @@ void time_end() {
     int64_t elapsed_ns = (end.tv_sec - start.tv_sec) * 1000000000LL + 
             (end.tv_nsec - start.tv_nsec);
     sum += elapsed_ns;
+    times[count] = (double) elapsed_ns;
     count += 1;
     printf("Time: %ld nanoseconds\n", elapsed_ns);
 }
 
 static
 void time_average() {
-    double average = sum / (double)count;
-    printf("Average Time: %.2f nanoseconds\n", average);
+    double media = sum / (double)count;
+    // printf("Average Time: %.2f nanoseconds\n", media);
+
+    double variancia_soma = 0.0;
+    for (int i = 0; i < count; i++) {
+        const double val = (times[i] - media);
+        variancia_soma += val * val;
+    }
+    double desvio_padrao = sqrt(variancia_soma / count);
+
+    // Exibição dos resultados
+    printf("\nMédia: %.2f\n", media);
+    printf("Desvio Padrão: %.2f\n", desvio_padrao);
 }
 
 // ============================================================================
@@ -85,6 +99,7 @@ int main(int argc, char ** argv)
     auto stamp = node->get_clock()->now();
 
     // --- Publicar TF (Base para o Laser) ---
+    /*
     tf_msg.header.stamp = stamp;
     tf_msg.header.frame_id = "base_link";
     tf_msg.child_frame_id = "laser_frame";
@@ -101,6 +116,7 @@ int main(int argc, char ** argv)
     tf_msg.transform.rotation.w = 1.0;
 
     tf_broadcaster->sendTransform(tf_msg);
+    */
 
 
     // Preenche o cabeçalho (Header)

@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <math.h>
 
 // ============================================================================
 //  Medição do Tempo
@@ -15,6 +16,8 @@
 int count = 0;
 int64_t sum = 0;
 struct timespec start, end;
+
+double times[100];
 
 static
 void time_begin() {
@@ -27,14 +30,26 @@ void time_end() {
     int64_t elapsed_ns = (end.tv_sec - start.tv_sec) * 1000000000LL + 
             (end.tv_nsec - start.tv_nsec);
     sum += elapsed_ns;
+    times[count] = (double) elapsed_ns;
     count += 1;
     printf("Time: %ld nanoseconds\n", elapsed_ns);
 }
 
 static
 void time_average() {
-    double average = sum / (double)count;
-    printf("Average Time: %.2f nanoseconds\n", average);
+    double media = sum / (double)count;
+    // printf("Average Time: %.2f nanoseconds\n", media);
+
+    double variancia_soma = 0.0;
+    for (int i = 0; i < count; i++) {
+        const double val = (times[i] - media);
+        variancia_soma += val * val;
+    }
+    double desvio_padrao = sqrt(variancia_soma / count);
+
+    // Exibição dos resultados
+    printf("\nMédia: %.2f\n", media);
+    printf("Desvio Padrão: %.2f\n", desvio_padrao);
 }
 
 // ============================================================================
@@ -42,9 +57,9 @@ void time_average() {
 // ============================================================================
 
 int main() {
-    // ufr_stdout("@new mqtt @coder msgpack @topic /scan");
+    ufr_stdout("@new mqtt @coder msgpack @topic /scan @log 0");
     // ufr_stdout("@new zmq @coder msgpack @log 0");
-    ufr_stdout("@new ros2 @coder ros2:laserscan @topic /scan @log 0");
+    // ufr_stdout("@new ros2 @coder ros2:laserscan @topic /scan @log 0");
     
     sleep(1);
 
@@ -64,7 +79,7 @@ int main() {
         ufr_printf("intensities=%a:f:1000\n", intensities);
         time_end();
 
-        // Necessario um delay, senão ele envia apenas uma única mensagem
+        // Necessario um delay, senão ele envia apenas uma única mensagem ao inves de 50
         usleep(500000);
     }
 

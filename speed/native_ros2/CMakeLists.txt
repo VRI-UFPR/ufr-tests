@@ -8,6 +8,8 @@ find_package(sensor_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
 
+set(CMAKE_CXX_FLAGS "-O3 -Wall -Wextra")
+
 add_executable(test_ros2 src/main.cpp)
 ament_target_dependencies(test_ros2 rclcpp geometry_msgs sensor_msgs tf2_ros)
 
